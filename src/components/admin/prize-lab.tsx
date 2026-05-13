@@ -410,6 +410,10 @@ function AssignmentQuickAdd({
       <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold uppercase">
         Game assignments
       </h2>
+      <p className="mt-2 text-sm text-amber-100/70">
+        Prizes only appear on the wheel, plinko, or slots after you assign them here (per game, with weights).
+        Creating a prize alone does not put it on the floor.
+      </p>
       <p className="mt-2 text-sm text-zinc-400">
         Bind prizes to activations. Plinko requires a slot index; wheel can set slice color.
       </p>

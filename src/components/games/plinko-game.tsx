@@ -7,6 +7,7 @@ import { GameHud } from "@/components/games/game-hud";
 import { WinOverlay } from "@/components/games/win-overlay";
 import { useGameSessionStore } from "@/stores/game-session-store";
 import { fireJackpotConfetti, fireWinConfetti } from "@/components/games/confetti-burst";
+import { FloorSetupNeeded } from "@/components/games/floor-setup-needed";
 
 const COLS = 9;
 const ROWS = 12;
@@ -24,6 +25,7 @@ function pegs() {
 
 export function PlinkoGame() {
   const [cfg, setCfg] = useState<GameConfigResponse["plinko"] | null>(null);
+  const [floorReady, setFloorReady] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [ball, setBall] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.06 });
   const [result, setResult] = useState<PlinkoPlayResult | null>(null);
@@ -35,9 +37,16 @@ export function PlinkoGame() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await fetch("/api/games/plinko/config");
-      const data = (await res.json()) as GameConfigResponse;
-      if (!cancelled && data.plinko) setCfg(data.plinko);
+      try {
+        const res = await fetch("/api/games/plinko/config");
+        const data = (await res.json()) as GameConfigResponse;
+        if (!cancelled) {
+          setFloorReady(data.ready !== false);
+          if (data.plinko) setCfg(data.plinko);
+        }
+      } catch {
+        if (!cancelled) setFloorReady(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -54,7 +63,7 @@ export function PlinkoGame() {
   );
 
   const drop = useCallback(async () => {
-    if (busy || !cfg?.slots.length) return;
+    if (busy || floorReady !== true || !cfg?.slots.length) return;
     setBusy(true);
     setResult(null);
     try {
@@ -89,7 +98,7 @@ export function PlinkoGame() {
     } finally {
       setBusy(false);
     }
-  }, [busy, cfg, pushAssignment, recent, sessionId, slotTargetX]);
+  }, [busy, cfg, floorReady, pushAssignment, recent, sessionId, slotTargetX]);
 
   const slots = cfg?.slots.slice().sort((a, b) => a.slotIndex - b.slotIndex) ?? [];
 
@@ -104,6 +113,8 @@ export function PlinkoGame() {
             setBall({ x: 0.5, y: 0.06 });
           }}
         />
+
+        {floorReady === false ? <FloorSetupNeeded gameLabel="plinko" /> : null}
 
         <div className="grid items-start gap-6 lg:grid-cols-[1fr_320px]">
           <div className="relative aspect-[10/16] w-full overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-b from-zinc-950 via-black to-zinc-950 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
@@ -149,7 +160,7 @@ export function PlinkoGame() {
             </p>
             <button
               type="button"
-              disabled={busy || slots.length === 0}
+              disabled={busy || slots.length === 0 || floorReady !== true}
               onClick={() => void drop()}
               className="mt-6 h-16 w-full rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 text-lg font-bold uppercase tracking-wide text-white shadow-[0_0_34px_rgba(249,115,22,0.45)] transition enabled:hover:brightness-110 disabled:opacity-50"
             >

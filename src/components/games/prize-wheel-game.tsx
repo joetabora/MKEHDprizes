@@ -10,6 +10,7 @@ import { useGameSessionStore } from "@/stores/game-session-store";
 import { fireJackpotConfetti, fireWinConfetti } from "@/components/games/confetti-burst";
 import { useGameSounds } from "@/hooks/use-game-sounds";
 import { useKioskStore } from "@/stores/kiosk-store";
+import { FloorSetupNeeded } from "@/components/games/floor-setup-needed";
 
 function polar(r: number, angle: number) {
   return { x: r * Math.cos(angle), y: r * Math.sin(angle) };
@@ -24,6 +25,7 @@ function wedgePath(r: number, start: number, end: number) {
 
 export function PrizeWheelGame() {
   const [segments, setSegments] = useState<WheelSegmentPublic[]>([]);
+  const [inventoryReady, setInventoryReady] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<WheelPlayResult | null>(null);
@@ -40,9 +42,14 @@ export function PrizeWheelGame() {
       try {
         const res = await fetch("/api/games/wheel/config");
         const data = (await res.json()) as GameConfigResponse;
-        if (!cancelled && data.wheel?.segments) {
-          setSegments(data.wheel.segments);
+        if (!cancelled) {
+          setInventoryReady(data.ready !== false);
+          if (data.wheel?.segments) {
+            setSegments(data.wheel.segments);
+          }
         }
+      } catch {
+        if (!cancelled) setInventoryReady(false);
       } finally {
         if (!cancelled) requestAnimationFrame(() => setLoading(false));
       }
@@ -63,7 +70,7 @@ export function PrizeWheelGame() {
   }, [segments]);
 
   const play = useCallback(async () => {
-    if (spinning || segments.length === 0) return;
+    if (spinning || segments.length === 0 || inventoryReady !== true) return;
     sounds.resumeAudio();
     sounds.spin();
     setSpinning(true);
@@ -114,7 +121,18 @@ export function PrizeWheelGame() {
     } finally {
       setSpinning(false);
     }
-  }, [centersDeg, pushAssignment, recent, rotation, segments, sessionId, spinning, sounds, reduced]);
+  }, [
+    centersDeg,
+    inventoryReady,
+    pushAssignment,
+    recent,
+    rotation,
+    segments,
+    sessionId,
+    spinning,
+    sounds,
+    reduced,
+  ]);
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col bg-[radial-gradient(circle_at_20%_0%,rgba(249,115,22,0.18),transparent_45%),radial-gradient(circle_at_80%_100%,rgba(14,165,233,0.12),transparent_40%),linear-gradient(180deg,#09090b,#020202)] px-4 pb-8 pt-4 text-white md:px-10">
@@ -128,6 +146,8 @@ export function PrizeWheelGame() {
             rotation.set(0);
           }}
         />
+
+        {!loading && inventoryReady === false ? <FloorSetupNeeded gameLabel="the wheel" /> : null}
 
         <div className="grid flex-1 items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="relative mx-auto aspect-square w-full max-w-xl">
@@ -185,7 +205,7 @@ export function PrizeWheelGame() {
               </motion.div>
               <button
                 type="button"
-                disabled={spinning || loading || segments.length === 0}
+                disabled={spinning || loading || segments.length === 0 || inventoryReady !== true}
                 onClick={() => void play()}
                 className="absolute left-1/2 top-1/2 z-30 grid h-28 w-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-orange-400/70 bg-gradient-to-br from-orange-600 to-amber-500 text-lg font-black uppercase tracking-wide text-white shadow-[0_0_40px_rgba(249,115,22,0.55)] transition enabled:hover:scale-[1.03] enabled:active:scale-[0.98] disabled:opacity-60"
               >

@@ -81,6 +81,20 @@ export function pickWeightedAssignment(
   return eligible[eligible.length - 1];
 }
 
+/** True when at least one assignment could be chosen for a play (matches pickWeighted eligibility). */
+export function hasPlayableAssignments(rows: AssignmentWithPrize[]): boolean {
+  const eligible = rows.filter(
+    (r) =>
+      r.enabled !== false &&
+      r.prize.active &&
+      r.prize.quantity_remaining > 0 &&
+      Number(r.probability_weight) > 0,
+  );
+  if (eligible.length === 0) return false;
+  const sum = eligible.reduce((a, r) => a + Number(r.probability_weight), 0);
+  return sum > 0;
+}
+
 export function makeSeededRng(sessionId: string, salt: string): () => number {
   const base = hashSession(`${sessionId}:${salt}:${Date.now()}`);
   return mulberry32(base);

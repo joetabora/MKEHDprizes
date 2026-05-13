@@ -96,6 +96,8 @@ export interface SlotSymbolPublic {
 }
 
 export interface GameConfigResponse {
+  /** False when using the database but nothing is playable for this game (add assignments + stock in admin). */
+  ready: boolean;
   wheel?: { segments: WheelSegmentPublic[] };
   plinko?: {
     slots: PlinkoSlotPublic[];

@@ -8,6 +8,7 @@ import { WinOverlay } from "@/components/games/win-overlay";
 import { useGameSessionStore } from "@/stores/game-session-store";
 import { fireJackpotConfetti, fireWinConfetti } from "@/components/games/confetti-burst";
 import { DEFAULT_SLOT_SYMBOLS } from "@/lib/prize-engine";
+import { FloorSetupNeeded } from "@/components/games/floor-setup-needed";
 
 const REEL_SYMBOLS = DEFAULT_SLOT_SYMBOLS;
 
@@ -36,6 +37,7 @@ function rowHeight() {
 
 export function SlotsGame() {
   const [, setCfg] = useState<GameConfigResponse["slots"] | null>(null);
+  const [floorReady, setFloorReady] = useState<boolean | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [strips, setStrips] = useState<[string[], string[], string[]]>(() => [
     makeStrip("TIRE"),
@@ -51,9 +53,16 @@ export function SlotsGame() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await fetch("/api/games/slots/config");
-      const data = (await res.json()) as GameConfigResponse;
-      if (!cancelled && data.slots) setCfg(data.slots);
+      try {
+        const res = await fetch("/api/games/slots/config");
+        const data = (await res.json()) as GameConfigResponse;
+        if (!cancelled) {
+          setFloorReady(data.ready !== false);
+          if (data.slots) setCfg(data.slots);
+        }
+      } catch {
+        if (!cancelled) setFloorReady(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -63,7 +72,7 @@ export function SlotsGame() {
   const rowH = useMemo(() => 54, []);
 
   const spin = useCallback(async () => {
-    if (spinning) return;
+    if (spinning || floorReady !== true) return;
     setSpinning(true);
     setResult(null);
     try {
@@ -106,7 +115,7 @@ export function SlotsGame() {
     } finally {
       setSpinning(false);
     }
-  }, [pushAssignment, recent, sessionId, spinning]);
+  }, [floorReady, pushAssignment, recent, sessionId, spinning]);
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_50%_20%,rgba(249,115,22,0.25),transparent_55%),radial-gradient(circle_at_50%_120%,rgba(168,85,247,0.12),transparent_50%),#040404] px-4 pb-12 pt-4 text-white md:px-10">
@@ -122,6 +131,8 @@ export function SlotsGame() {
             setStrips([makeStrip("TIRE"), makeStrip("TIRE"), makeStrip("TIRE")]);
           }}
         />
+
+        {floorReady === false ? <FloorSetupNeeded gameLabel="slots" /> : null}
 
         <div className="rounded-[36px] border border-orange-500/25 bg-gradient-to-b from-zinc-950/90 via-black to-zinc-950/90 p-6 shadow-[0_0_90px_rgba(249,115,22,0.18)] md:p-10">
           <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -182,7 +193,7 @@ export function SlotsGame() {
             </div>
             <button
               type="button"
-              disabled={spinning}
+              disabled={spinning || floorReady !== true}
               onClick={() => void spin()}
               className="h-16 min-w-[220px] rounded-2xl bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 px-8 font-[family-name:var(--font-display)] text-xl font-bold uppercase tracking-[0.12em] text-black shadow-[0_0_40px_rgba(249,115,22,0.45)] transition enabled:hover:brightness-110 disabled:opacity-60"
             >
