@@ -1,6 +1,5 @@
 import { DM_Sans, JetBrains_Mono, Oswald } from "next/font/google";
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,12 +36,10 @@ export default function RootLayout({
       <body
         className={`${sans.variable} ${display.variable} ${mono.variable} min-h-full bg-background font-sans antialiased`}
       >
-        <ClerkProvider>
-          <TooltipProvider delay={150}>
-            {children}
-            <Toaster richColors closeButton position="top-center" />
-          </TooltipProvider>
-        </ClerkProvider>
+        <TooltipProvider delay={150}>
+          {children}
+          <Toaster richColors closeButton position="top-center" />
+        </TooltipProvider>
       </body>
     </html>
   );

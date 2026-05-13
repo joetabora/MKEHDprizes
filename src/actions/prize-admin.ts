@@ -135,13 +135,13 @@ export async function listRedemptionsAdminAction(): Promise<
 }
 
 export async function markRedemptionRedeemedAction(redemptionId: string) {
-  const { db, userId } = await requireAdminDb();
+  const { db } = await requireAdminDb();
   await db
     .update(redemptions)
     .set({
       status: "redeemed",
       redeemed_at: new Date(),
-      redeemed_by: userId,
+      redeemed_by: null,
     })
     .where(eq(redemptions.id, redemptionId));
   revalidatePath("/admin/redemptions");

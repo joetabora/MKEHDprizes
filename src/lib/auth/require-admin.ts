@@ -1,20 +1,16 @@
-import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { tryGetDb } from "@/db/index";
-import { profiles } from "@/db/schema";
+import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/auth/admin-session";
 
 export async function requireAdminDb() {
-  const { userId } = await auth();
-  if (!userId) {
+  const secret = process.env.ADMIN_SESSION_SECRET ?? "";
+  const token = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value ?? "";
+  if (!secret || !token || !(await verifyAdminSessionToken(token, secret))) {
     throw new Error("Unauthorized");
   }
   const db = tryGetDb();
   if (!db) {
     throw new Error("DATABASE_URL is not configured");
   }
-  const row = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
-  if (row[0]?.role !== "admin") {
-    throw new Error("Forbidden");
-  }
-  return { db, userId };
+  return { db };
 }

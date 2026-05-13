@@ -1,12 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
-import { UserButton } from "@clerk/nextjs";
-import { eq } from "drizzle-orm";
 import { MkeLogo } from "@/components/brand/mke-logo";
-import { ensureProfileSynced } from "@/lib/auth/ensure-profile";
 import { tryGetDb } from "@/db/index";
-import { profiles } from "@/db/schema";
+import { adminLogoutAction } from "@/actions/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,21 +11,9 @@ export default async function ProtectedAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
-  if (!userId) {
-    redirect("/sign-in?redirect_url=" + encodeURIComponent("/admin"));
-  }
-
-  await ensureProfileSynced();
-
   const db = tryGetDb();
   if (!db) {
-    redirect("/sign-in?error=no_db");
-  }
-
-  const rows = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
-  if (rows[0]?.role !== "admin") {
-    redirect("/sign-in?error=forbidden");
+    redirect("/admin/login?error=no_db");
   }
 
   return (
@@ -72,7 +56,14 @@ export default async function ProtectedAdminLayout({
                 Floor apps
               </Link>
             </nav>
-            <UserButton />
+            <form action={adminLogoutAction}>
+              <button
+                type="submit"
+                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm hover:bg-white/10"
+              >
+                Log out
+              </button>
+            </form>
           </div>
         </div>
       </header>

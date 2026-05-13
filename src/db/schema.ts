@@ -23,7 +23,7 @@ export const rarityTierEnum = pgEnum("rarity_tier", [
 
 export const gameTypeEnum = pgEnum("game_type", ["wheel", "plinko", "slots"]);
 
-/** Clerk user id (e.g. user_xxx) */
+/** Opaque user id (legacy external auth ids allowed) */
 export const profiles = pgTable("profiles", {
   id: text("id").primaryKey(),
   email: text("email"),

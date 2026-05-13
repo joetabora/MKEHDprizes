@@ -1,6 +1,6 @@
 # MKE H-D Prize Hub
 
-Production-oriented Next.js app for Milwaukee Harley-Davidson–style event prize activations: three floor games (wheel, plinko, slots), **Postgres** (Vercel Postgres / Neon) + **Drizzle ORM**, **Clerk** authentication, weighted outcomes resolved on the server, and an admin console for prizes, distribution preview, analytics, and redemptions.
+Production-oriented Next.js app for Milwaukee Harley-Davidson–style event prize activations: three floor games (wheel, plinko, slots), **Postgres** (Vercel Postgres / Neon) + **Drizzle ORM**, a **single shared admin password** (HTTP-only session cookie) for the staff console, weighted outcomes resolved on the server, and an admin UI for prizes, distribution preview, analytics, and redemptions.
 
 ## Stack
 
@@ -8,7 +8,6 @@ Production-oriented Next.js app for Milwaukee Harley-Davidson–style event priz
 - **Tailwind CSS 4** + **shadcn/ui**
 - **Framer Motion**
 - **Neon / Vercel Postgres** + **Drizzle ORM**
-- **Clerk** (sign-in, sessions)
 - **Zustand** (kiosk + session hints)
 - **Zod** (API validation)
 
@@ -16,11 +15,11 @@ Production-oriented Next.js app for Milwaukee Harley-Davidson–style event priz
 
 ```
 src/
-  app/                      # Routes: /, /game/*, /sign-in, /admin/*, /api/*
-  actions/                  # Server actions (admin prize / redemption CRUD)
+  app/                      # Routes: /, /game/*, /admin/login, /admin/*, /api/*
+  actions/                  # Server actions (admin auth, prize / redemption CRUD)
   db/                       # Drizzle schema + DB client
   components/
-  lib/auth/                 # Clerk profile sync + admin guard
+  lib/auth/                 # Admin session (HMAC cookie) + DB guard
   lib/games/                # Play orchestration + data fetch
   lib/db/mappers.ts         # DB row → app types
 drizzle/
@@ -36,12 +35,12 @@ drizzle.config.ts           # drizzle-kit (optional)
    npm install
    ```
 
-2. **Clerk**
+2. **Admin login**
 
-   Create an application at [Clerk](https://dashboard.clerk.com). Add to `.env.local`:
+   Copy `.env.local.example` to `.env.local` and set:
 
-   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-   - `CLERK_SECRET_KEY`
+   - `ADMIN_PASSWORD` — one strong password shared by staff who manage prizes
+   - `ADMIN_SESSION_SECRET` — long random string used to sign the session cookie (e.g. `openssl rand -hex 32`)
 
 3. **Database**
 
@@ -57,41 +56,35 @@ drizzle.config.ts           # drizzle-kit (optional)
 
    The previous `supabase/migrations/` file is **legacy** (Supabase Auth + RLS); this app no longer uses it.
 
-4. **First admin**
-
-   Sign in once via `/sign-in`, then in SQL:
-
-   ```sql
-   update public.profiles
-   set role = 'admin'
-   where id = 'user_XXXXX';  -- your Clerk user id from Clerk dashboard or DB
-   ```
-
-5. **Dev / build**
+4. **Dev / build**
 
    ```bash
    npm run dev
    ```
 
+   Open `/admin/login`, sign in with `ADMIN_PASSWORD`, then use `/admin` and related pages.
+
    ```bash
    npm run build && npm start
    ```
 
-6. **Optional demo mode**
+5. **Optional demo mode**
 
    - `NEXT_PUBLIC_LOCAL_ONLY_MODE=true` — in-memory prize catalog; plays are not written to Postgres.
 
 ## Vercel deployment
 
-1. Link the GitHub repo; add **Clerk** env vars and `DATABASE_URL` from Vercel Storage / Neon.
-2. Run `drizzle/0000_init_neon.sql` against that database (SQL Editor with **psql** or Neon’s “run script” if supported).
-3. Promote your user to `admin` in `profiles` as above.
+1. Link the GitHub repo.
+2. Add **Production** (and Preview if needed) env vars: `DATABASE_URL`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`.
+3. Run `drizzle/0000_init_neon.sql` against that database (e.g. **`psql … -f`**).
+4. Redeploy after changing secrets.
 
 ## Product notes
 
 - Outcomes are chosen server-side; public config endpoints do not expose probability weights.
-- Admin APIs and server actions require a signed-in user with `profiles.role = 'admin'`.
+- `/admin/*` (except `/admin/login`) and `/api/admin/*` require a valid **admin session cookie**; there is no per-user identity for staff.
 - Floor routes (`/`, `/game/*`, `/api/games/*`) stay public for kiosk use.
+- The `profiles` table remains for optional linkage (e.g. `redeemed_by`); it is **not** used to gate admin access.
 
 ## Branding
 

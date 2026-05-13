@@ -40,11 +40,11 @@ export function HomeExperience() {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a") {
         e.preventDefault();
         toast.message("Staff console", {
-          description: "Opening admin sign-in.",
+          description: "Opening admin login.",
           action: {
             label: "Go",
             onClick: () => {
-              window.location.href = "/sign-in?redirect_url=" + encodeURIComponent("/admin");
+              window.location.href = "/admin/login";
             },
           },
         });
@@ -64,7 +64,7 @@ export function HomeExperience() {
           <MkeLogo />
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/sign-in?redirect_url=/admin"
+              href="/admin/login"
               className="inline-flex h-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 text-base font-medium text-white hover:bg-white/10"
             >
               Staff console
