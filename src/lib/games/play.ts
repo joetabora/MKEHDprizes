@@ -20,6 +20,13 @@ import { eq } from "drizzle-orm";
 import { isLocalOnlyMode } from "@/lib/env";
 import { randomUUID } from "crypto";
 
+/** Mock catalog uses non-UUID ids; skip DB writes when assignments are not real rows. */
+function assignmentIsPersistable(a: AssignmentWithPrize): boolean {
+  const uuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuid.test(a.id) && uuid.test(a.prize_id);
+}
+
 function toPlayResultPrize(row: AssignmentWithPrize): PlayResultPrize {
   return {
     id: row.prize.id,
@@ -41,6 +48,9 @@ async function persistPlay(opts: {
     return { playId: randomUUID(), redemptionCode: generateRedemptionCode() };
   }
   if (!tryGetDb()) {
+    return { playId: randomUUID(), redemptionCode: generateRedemptionCode() };
+  }
+  if (!assignmentIsPersistable(opts.assignment)) {
     return { playId: randomUUID(), redemptionCode: generateRedemptionCode() };
   }
   const db = getDb();

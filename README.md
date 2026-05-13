@@ -72,6 +72,10 @@ drizzle.config.ts           # drizzle-kit (optional)
 
    - `NEXT_PUBLIC_LOCAL_ONLY_MODE=true` — in-memory prize catalog; plays are not written to Postgres.
 
+6. **Empty database**
+
+   If Postgres is connected but you have not created any prizes yet, floor games still run using the **built-in demo catalog** (spins are not saved). After you add prizes and assignments in `/admin`, the app uses your real inventory and persists plays.
+
 ## Vercel deployment
 
 1. Link the GitHub repo.

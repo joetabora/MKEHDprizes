@@ -24,6 +24,9 @@ export async function fetchAssignments(game: GameType): Promise<AssignmentWithPr
       .from(prizeAssignments)
       .innerJoin(prizes, eq(prizeAssignments.prize_id, prizes.id))
       .where(eq(prizeAssignments.game, game));
+    if (rows.length === 0) {
+      return getMockAssignments(game);
+    }
     return rows.map((r) => toAssignmentWithPrize(r.assignment, r.prize));
   } catch {
     return getMockAssignments(game);
@@ -48,6 +51,10 @@ export async function fetchAllAssignments(): Promise<AssignmentWithPrize[]> {
       })
       .from(prizeAssignments)
       .innerJoin(prizes, eq(prizeAssignments.prize_id, prizes.id));
+    if (rows.length === 0) {
+      const { getMockAllAssignments } = await import("@/lib/mock-data");
+      return getMockAllAssignments();
+    }
     return rows.map((r) => toAssignmentWithPrize(r.assignment, r.prize));
   } catch {
     const { getMockAllAssignments } = await import("@/lib/mock-data");
