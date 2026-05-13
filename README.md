@@ -1,6 +1,6 @@
 # MKE H-D Prize Hub
 
-Production-oriented Next.js app for Milwaukee Harley-Davidson–style event prize activations: three floor games (wheel, plinko, slots), **Postgres** (Vercel Postgres / Neon) + **Drizzle ORM**, a **single shared admin password** (HTTP-only session cookie) for the staff console, weighted outcomes resolved on the server, and an admin UI for prizes, distribution preview, analytics, and redemptions.
+Production-oriented Next.js app for Milwaukee Harley-Davidson–style event prize activations: three floor games (wheel, plinko, slots), **Postgres** (Vercel Postgres / Neon) + **Drizzle ORM**, a **single shared admin password** (HTTP-only session cookie) for the staff console, weighted outcomes resolved on the server, and an admin UI for prizes, distribution preview, and analytics.
 
 ## Stack
 
@@ -16,7 +16,7 @@ Production-oriented Next.js app for Milwaukee Harley-Davidson–style event priz
 ```
 src/
   app/                      # Routes: /, /game/*, /admin/login, /admin/*, /api/*
-  actions/                  # Server actions (admin auth, prize / redemption CRUD)
+  actions/                  # Server actions (admin auth, prize CRUD)
   db/                       # Drizzle schema + DB client
   components/
   lib/auth/                 # Admin session (HMAC cookie) + DB guard

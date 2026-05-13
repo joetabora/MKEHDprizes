@@ -28,7 +28,7 @@ export default async function AdminLoginPage({
           Staff console
         </h1>
         <p className="mb-6 text-center text-sm text-zinc-400">
-          Sign in to manage prizes, analytics, and redemptions.
+          Sign in to manage prizes and analytics.
         </p>
 
         {errorMsg ? (

@@ -204,12 +204,7 @@ export function SlotsGame() {
       </div>
 
       {result && (
-        <WinOverlay
-          open
-          prize={result.prize}
-          code={result.redemptionCode}
-          onClose={() => setResult(null)}
-        />
+        <WinOverlay open prize={result.prize} onClose={() => setResult(null)} />
       )}
     </div>
   );

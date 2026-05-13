@@ -13,9 +13,8 @@ import {
   toWheelSegments,
 } from "@/lib/prize-engine";
 import { fetchAssignments } from "@/lib/games/data";
-import { generateRedemptionCode } from "@/lib/redemption-code";
 import { getDb, tryGetDb } from "@/db/index";
-import { plays, redemptions, prizes, prizeAssignments } from "@/db/schema";
+import { plays, prizes, prizeAssignments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { isLocalOnlyMode } from "@/lib/env";
 import { randomUUID } from "crypto";
@@ -43,18 +42,17 @@ async function persistPlay(opts: {
   assignment: AssignmentWithPrize;
   sessionId: string;
   serverMeta: Record<string, unknown>;
-}): Promise<{ playId: string; redemptionCode: string }> {
+}): Promise<{ playId: string }> {
   if (isLocalOnlyMode()) {
-    return { playId: randomUUID(), redemptionCode: generateRedemptionCode() };
+    return { playId: randomUUID() };
   }
   if (!tryGetDb()) {
-    return { playId: randomUUID(), redemptionCode: generateRedemptionCode() };
+    return { playId: randomUUID() };
   }
   if (!assignmentIsPersistable(opts.assignment)) {
-    return { playId: randomUUID(), redemptionCode: generateRedemptionCode() };
+    return { playId: randomUUID() };
   }
   const db = getDb();
-  const code = generateRedemptionCode();
 
   const playId = await db.transaction(async (tx) => {
     const [play] = await tx
@@ -71,14 +69,6 @@ async function persistPlay(opts: {
     if (!play) {
       throw new Error("Failed to record play");
     }
-
-    await tx.insert(redemptions).values({
-      play_id: play.id,
-      prize_id: opts.assignment.prize_id,
-      code,
-      status: "pending",
-      claim_later: false,
-    });
 
     const newQty = Math.max(0, opts.assignment.prize.quantity_remaining - 1);
     await tx
@@ -100,7 +90,7 @@ async function persistPlay(opts: {
     return play.id;
   });
 
-  return { playId, redemptionCode: code };
+  return { playId };
 }
 
 export async function playWheel(opts: {
@@ -119,7 +109,7 @@ export async function playWheel(opts: {
   const safeIdx = idx >= 0 ? idx : 0;
   const spinTurns = 4 + Math.floor(rng() * 4);
 
-  const { playId, redemptionCode } = await persistPlay({
+  const { playId } = await persistPlay({
     game: "wheel",
     assignment: winner,
     sessionId: opts.sessionId,
@@ -133,7 +123,6 @@ export async function playWheel(opts: {
     prize: toPlayResultPrize(winner),
     winningSegmentIndex: safeIdx,
     spinTurns,
-    redemptionCode,
   };
 }
 
@@ -150,7 +139,7 @@ export async function playPlinko(opts: {
   });
   const slot = winner.plinko_slot_index ?? 0;
 
-  const { playId, redemptionCode } = await persistPlay({
+  const { playId } = await persistPlay({
     game: "plinko",
     assignment: winner,
     sessionId: opts.sessionId,
@@ -163,7 +152,6 @@ export async function playPlinko(opts: {
     assignmentId: winner.id,
     prize: toPlayResultPrize(winner),
     targetSlotIndex: slot,
-    redemptionCode,
   };
 }
 
@@ -182,7 +170,7 @@ export async function playSlots(opts: {
   const sym = winner.slot_symbol_key || slotsSymbolForRarity(rarity);
   const { reels, nearMissReel } = buildSlotReels(sym, rarity, rng);
 
-  const { playId, redemptionCode } = await persistPlay({
+  const { playId } = await persistPlay({
     game: "slots",
     assignment: winner,
     sessionId: opts.sessionId,
@@ -196,6 +184,5 @@ export async function playSlots(opts: {
     prize: toPlayResultPrize(winner),
     reelResults: [...reels],
     nearMissReel,
-    redemptionCode,
   };
 }

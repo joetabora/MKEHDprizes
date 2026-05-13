@@ -329,7 +329,7 @@ export function PrizeLab() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Redemption instructions (guest facing)</Label>
+              <Label>Guest note (optional)</Label>
               <Textarea
                 className="rounded-xl border-white/10 bg-black/40"
                 value={form.redemption_instructions}

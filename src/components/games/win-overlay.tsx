@@ -4,17 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { PlayResultPrize, RarityTier } from "@/types/database";
 import { rarityLabel, rarityUi } from "@/lib/rarity";
 import { Button } from "@/components/ui/button";
-import { QrCode } from "lucide-react";
 
 export function WinOverlay({
   open,
   prize,
-  code,
   onClose,
 }: {
   open: boolean;
   prize: PlayResultPrize;
-  code: string;
   onClose: () => void;
 }) {
   const r = prize.rarity as RarityTier;
@@ -42,17 +39,15 @@ export function WinOverlay({
               {prize.name}
             </h2>
             <p className="mt-3 text-lg text-zinc-200/90">{prize.description}</p>
-            <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2 rounded-2xl border border-white/10 bg-black/35 p-5 text-left">
-              <p className="text-xs uppercase tracking-widest text-zinc-400">Redemption code</p>
-              <p className="font-mono text-3xl font-bold tracking-[0.2em] text-orange-200">{code}</p>
-              {prize.redemptionInstructions && (
-                <p className="mt-2 text-sm leading-relaxed text-zinc-300">{prize.redemptionInstructions}</p>
-              )}
-              <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
-                <QrCode className="h-4 w-4" />
-                Staff can scan or enter this code in Admin → Redemptions.
+            <p className="mt-5 text-sm font-medium text-zinc-300">
+              Take this prize at the desk — staffed handoff, no code required.
+            </p>
+            {prize.redemptionInstructions ? (
+              <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-white/10 bg-black/35 p-5 text-left">
+                <p className="text-xs uppercase tracking-widest text-zinc-400">Guest note</p>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-200">{prize.redemptionInstructions}</p>
               </div>
-            </div>
+            ) : null}
             <div className="mt-2 text-xs text-zinc-500">Tier: {rarityLabel(r)}</div>
             <Button
               type="button"

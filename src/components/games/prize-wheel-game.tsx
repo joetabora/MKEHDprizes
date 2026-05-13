@@ -178,18 +178,32 @@ export function PrizeWheelGame() {
                     return (
                       <g key={seg.assignmentId} filter={seg.isJackpot ? "url(#glow)" : undefined}>
                         <path d={wedgePath(118, start - Math.PI / 2, end - Math.PI / 2)} fill={seg.color} opacity={0.95} stroke="rgba(0,0,0,0.45)" strokeWidth={1.2} />
-                        <text
-                          x={Math.cos((start + end) / 2 - Math.PI / 2) * 74}
-                          y={Math.sin((start + end) / 2 - Math.PI / 2) * 74}
-                          fill="white"
-                          fontSize={11}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          className="font-[family-name:var(--font-display)] uppercase"
-                          style={{ textShadow: "0 2px 8px rgba(0,0,0,0.8)" }}
-                        >
-                          {seg.label.length > 14 ? `${seg.label.slice(0, 13)}…` : seg.label}
-                        </text>
+                        {(() => {
+                          const mid = (start + end) / 2 - Math.PI / 2;
+                          const labelR = 74;
+                          const tx = Math.cos(mid) * labelR;
+                          const ty = Math.sin(mid) * labelR;
+                          let rotDeg = (mid * 180) / Math.PI + 90;
+                          if (ty > 0.5) rotDeg += 180;
+                          const display =
+                            seg.label.length > 18 ? `${seg.label.slice(0, 17)}…` : seg.label;
+                          return (
+                            <text
+                              transform={`rotate(${rotDeg}, ${tx}, ${ty})`}
+                              x={tx}
+                              y={ty}
+                              fill="white"
+                              fontSize={10}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              className="font-[family-name:var(--font-display)] uppercase"
+                              letterSpacing="0.06em"
+                              style={{ textShadow: "0 2px 8px rgba(0,0,0,0.85)" }}
+                            >
+                              {display}
+                            </text>
+                          );
+                        })()}
                       </g>
                     );
                   })}
@@ -222,8 +236,7 @@ export function PrizeWheelGame() {
               Built Milwaukee tough. Spun dealership fair.
             </h2>
             <p className="text-lg text-zinc-300">
-              Tap Fire for a weighted, inventory-aware outcome — no odds on screen, just premium kinetic
-              energy and a clean redemption handoff for staff.
+              Tap Fire for a weighted, inventory-aware outcome — prizes go out on the spot at the desk.
             </p>
             <ul className="grid gap-3 text-sm text-zinc-400 md:grid-cols-2">
               <li className="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">Touch-native HUD</li>
@@ -236,12 +249,7 @@ export function PrizeWheelGame() {
       </div>
 
       {result && (
-        <WinOverlay
-          open
-          prize={result.prize}
-          code={result.redemptionCode}
-          onClose={() => setResult(null)}
-        />
+        <WinOverlay open prize={result.prize} onClose={() => setResult(null)} />
       )}
     </div>
   );

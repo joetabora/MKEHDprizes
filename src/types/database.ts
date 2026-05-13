@@ -51,18 +51,6 @@ export interface PlayRow {
   created_at: string;
 }
 
-export interface RedemptionRow {
-  id: string;
-  play_id: string;
-  prize_id: string;
-  code: string;
-  status: "pending" | "redeemed" | "expired";
-  claim_later: boolean;
-  redeemed_at: string | null;
-  redeemed_by: string | null;
-  created_at: string;
-}
-
 /** Joined row used by engines — includes assignment + prize */
 export interface AssignmentWithPrize extends PrizeAssignmentRow {
   prize: PrizeRow;
@@ -128,7 +116,6 @@ export interface WheelPlayResult {
   winningSegmentIndex: number;
   /** Extra rotations for animation */
   spinTurns: number;
-  redemptionCode: string;
 }
 
 export interface PlinkoPlayResult {
@@ -137,7 +124,6 @@ export interface PlinkoPlayResult {
   assignmentId: string;
   prize: PlayResultPrize;
   targetSlotIndex: number;
-  redemptionCode: string;
 }
 
 export interface SlotsPlayResult {
@@ -148,7 +134,6 @@ export interface SlotsPlayResult {
   reelResults: string[];
   /** Which reel shows near-miss (0-based), or null */
   nearMissReel: number | null;
-  redemptionCode: string;
 }
 
 export type AnyPlayResult = WheelPlayResult | PlinkoPlayResult | SlotsPlayResult;

@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { count, eq, gte } from "drizzle-orm";
+import { count, gte, sql } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getEffectiveStatsSince } from "@/lib/stats-window";
 import type { GameType } from "@/types/database";
 import { tryGetDb } from "@/db/index";
-import { plays, redemptions } from "@/db/schema";
+import { plays } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -15,17 +15,17 @@ export default async function AdminHomePage() {
 
   let playCount = 0;
   let playRows: { game: string }[] = [];
-  let pendingRedemptions = 0;
+  let distinctPrizes = 0;
 
   if (db) {
     const [pc] = await db.select({ c: count() }).from(plays).where(gte(plays.created_at, sinceDate));
     playCount = Number(pc?.c ?? 0);
     playRows = await db.select({ game: plays.game }).from(plays).where(gte(plays.created_at, sinceDate));
-    const [rc] = await db
-      .select({ c: count() })
-      .from(redemptions)
-      .where(eq(redemptions.status, "pending"));
-    pendingRedemptions = Number(rc?.c ?? 0);
+    const [dc] = await db
+      .select({ c: sql<number>`count(distinct ${plays.prize_id})::int` })
+      .from(plays)
+      .where(gte(plays.created_at, sinceDate));
+    distinctPrizes = Number(dc?.c ?? 0);
   }
 
   const freq: Record<string, number> = {};
@@ -68,9 +68,9 @@ export default async function AdminHomePage() {
         </Card>
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-zinc-400">Pending redemptions</CardTitle>
+            <CardTitle className="text-sm font-medium text-zinc-400">Unique prizes won</CardTitle>
           </CardHeader>
-          <CardContent className="text-4xl font-bold text-white">{pendingRedemptions}</CardContent>
+          <CardContent className="text-4xl font-bold text-white">{distinctPrizes}</CardContent>
         </Card>
       </div>
 
@@ -94,17 +94,18 @@ export default async function AdminHomePage() {
         </Card>
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
-            <CardTitle>Redemption desk</CardTitle>
+            <CardTitle>Analytics</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-zinc-300">
-            Claim codes generated on-device — reconcile quickly while lines are still hot.
+            Heatmaps and mix by game for the current stats window — tune the floor while the crowd is still
+            here.
           </CardContent>
           <CardContent>
             <Link
-              href="/admin/redemptions"
+              href="/admin/analytics"
               className="inline-flex rounded-full border border-orange-500/40 px-5 py-2 text-sm font-medium text-orange-200 hover:bg-orange-500/10"
             >
-              Review queue
+              Open analytics
             </Link>
           </CardContent>
         </Card>

@@ -44,12 +44,6 @@ export default async function ProtectedAdminLayout({
                 Analytics
               </Link>
               <Link
-                href="/admin/redemptions"
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-              >
-                Redemptions
-              </Link>
-              <Link
                 href="/"
                 className="rounded-full border border-orange-500/40 bg-orange-500/10 px-4 py-2 text-orange-200 hover:bg-orange-500/20"
               >
