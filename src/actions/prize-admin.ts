@@ -68,6 +68,61 @@ export async function upsertPrizeAction(payload: {
   revalidatePath("/admin/prizes");
 }
 
+export async function duplicatePrizeAction(sourcePrizeId: string) {
+  const { db } = await requireAdminDb();
+  const [src] = await db.select().from(prizes).where(eq(prizes.id, sourcePrizeId)).limit(1);
+  if (!src) {
+    throw new Error("Prize not found");
+  }
+
+  const baseName = src.name.trimEnd();
+  const copyLabel = baseName.endsWith("(copy)") ? `${baseName} 2` : `${baseName} (copy)`;
+
+  const [inserted] = await db
+    .insert(prizes)
+    .values({
+      name: copyLabel,
+      description: src.description,
+      image_url: src.image_url,
+      rarity: src.rarity,
+      quantity_total: src.quantity_total,
+      quantity_remaining: src.quantity_remaining,
+      active: src.active,
+      redemption_instructions: src.redemption_instructions,
+      internal_notes: src.internal_notes,
+    })
+    .returning({ id: prizes.id });
+
+  if (!inserted) {
+    throw new Error("Failed to duplicate prize");
+  }
+
+  const assigns = await db
+    .select()
+    .from(prizeAssignments)
+    .where(eq(prizeAssignments.prize_id, sourcePrizeId));
+
+  if (assigns.length > 0) {
+    await db.insert(prizeAssignments).values(
+      assigns.map((a) => ({
+        prize_id: inserted.id,
+        game: a.game,
+        probability_weight: a.probability_weight,
+        visual_weight: a.visual_weight,
+        enabled: a.enabled,
+        wheel_color: a.wheel_color,
+        wheel_glow_jackpot: a.wheel_glow_jackpot,
+        plinko_slot_index: a.plinko_slot_index,
+        slot_symbol_key: a.slot_symbol_key,
+        slot_payline_tier: a.slot_payline_tier,
+        display_sort: a.display_sort,
+      })),
+    );
+  }
+
+  revalidatePath("/admin/prizes");
+}
+
 export async function insertAssignmentAction(payload: {
   prizeId: string;
   game: GameType;

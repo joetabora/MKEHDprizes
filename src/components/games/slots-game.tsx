@@ -18,6 +18,18 @@ function makeStrip(centerKey: string) {
   return [...pad.slice(0, mid), centerKey, ...pad.slice(mid)];
 }
 
+/** Longer reel strip so the motion scrolls through many symbols before landing. */
+function makeExtendedStrip(centerKey: string, reelIndex: number): string[] {
+  const keys = REEL_SYMBOLS.map((s) => s.key);
+  const inner = makeStrip(centerKey);
+  const leadLen = 36 + Math.floor(Math.random() * 18) + reelIndex * 5;
+  const lead = Array.from(
+    { length: leadLen },
+    (_, i) => keys[(i * 5 + reelIndex * 3 + 7) % keys.length],
+  );
+  return [...lead, ...inner];
+}
+
 function rowHeight() {
   return typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches ? 64 : 54;
 }
@@ -68,9 +80,9 @@ export function SlotsGame() {
       const data = json;
       const h = rowHeight();
       const nextStrips: [string[], string[], string[]] = [
-        makeStrip(data.reelResults[0] ?? "TIRE"),
-        makeStrip(data.reelResults[1] ?? "TIRE"),
-        makeStrip(data.reelResults[2] ?? "TIRE"),
+        makeExtendedStrip(data.reelResults[0] ?? "TIRE", 0),
+        makeExtendedStrip(data.reelResults[1] ?? "TIRE", 1),
+        makeExtendedStrip(data.reelResults[2] ?? "TIRE", 2),
       ];
       setStrips(nextStrips);
       const nextOffsets: [number, number, number] = [0, 0, 0];
@@ -78,13 +90,15 @@ export function SlotsGame() {
       await new Promise((r) => requestAnimationFrame(r));
       const targetOffsets = nextStrips.map((strip, idx) => {
         const key = data.reelResults[idx] ?? "TIRE";
-        const row = strip.lastIndexOf(key);
+        const inner = makeStrip(key);
+        const innerRow = inner.lastIndexOf(key);
+        const row = strip.length - inner.length + innerRow;
         const base = (strip.length - row) * h;
         const near = data.nearMissReel === idx ? Math.floor(Math.random() * 2 + 1) * (h / 3) : 0;
         return base + near;
       }) as [number, number, number];
       setOffsets(targetOffsets);
-      await new Promise((r) => setTimeout(r, 1900));
+      await new Promise((r) => setTimeout(r, 3400));
       if (data.prize.rarity === "jackpot") fireJackpotConfetti();
       else if (["legendary", "epic"].includes(data.prize.rarity)) fireWinConfetti();
       pushAssignment(data.assignmentId);
@@ -136,9 +150,9 @@ export function SlotsGame() {
                   initial={false}
                   animate={{ y: -offsets[i] }}
                   transition={{
-                    duration: spinning ? 1.85 : 0,
-                    ease: spinning ? [0.12, 0.9, 0.08, 1] : "easeOut",
-                    delay: i * 0.14,
+                    duration: spinning ? 2.85 : 0,
+                    ease: spinning ? [0.08, 0.55, 0.18, 1] : "easeOut",
+                    delay: i * 0.22,
                   }}
                 >
                   {strip.map((k, idx) => {

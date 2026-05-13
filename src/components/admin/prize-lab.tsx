@@ -7,6 +7,7 @@ import {
   upsertPrizeAction,
   insertAssignmentAction,
   setAssignmentEnabledAction,
+  duplicatePrizeAction,
 } from "@/actions/prize-admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -158,28 +159,46 @@ export function PrizeLab() {
                     </TableCell>
                     <TableCell>{p.active ? "Yes" : "No"}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl border-white/10"
-                        onClick={() => {
-                          setEditing(p);
-                          setForm({
-                            name: p.name,
-                            description: p.description ?? "",
-                            image_url: p.image_url ?? "",
-                            rarity: p.rarity as RarityTier,
-                            quantity_total: p.quantity_total,
-                            quantity_remaining: p.quantity_remaining,
-                            active: p.active,
-                            redemption_instructions: p.redemption_instructions ?? "",
-                            internal_notes: p.internal_notes ?? "",
-                          });
-                          setOpen(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl border-white/10"
+                          onClick={async () => {
+                            try {
+                              await duplicatePrizeAction(p.id);
+                              toast.success("Prize duplicated");
+                              await reload();
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : "Duplicate failed");
+                            }
+                          }}
+                        >
+                          Duplicate
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl border-white/10"
+                          onClick={() => {
+                            setEditing(p);
+                            setForm({
+                              name: p.name,
+                              description: p.description ?? "",
+                              image_url: p.image_url ?? "",
+                              rarity: p.rarity as RarityTier,
+                              quantity_total: p.quantity_total,
+                              quantity_remaining: p.quantity_remaining,
+                              active: p.active,
+                              redemption_instructions: p.redemption_instructions ?? "",
+                              internal_notes: p.internal_notes ?? "",
+                            });
+                            setOpen(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
