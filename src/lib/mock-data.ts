@@ -1,0 +1,291 @@
+import type { AssignmentWithPrize, GameType } from "@/types/database";
+
+const now = new Date().toISOString();
+
+const demoPrizes = [
+  {
+    id: "p-sticker",
+    name: "Harley Sticker Pack",
+    description: "Die-cut dealership decals.",
+    image_url: null as string | null,
+    rarity: "common" as const,
+    quantity_total: 500,
+    quantity_remaining: 500,
+    active: true,
+    redemption_instructions: "Show this code at the merch tent.",
+    internal_notes: "",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "p-soda",
+    name: "Free Fountain Soda",
+    description: "Chill out with a cold one.",
+    image_url: null,
+    rarity: "common" as const,
+    quantity_total: 300,
+    quantity_remaining: 300,
+    active: true,
+    redemption_instructions: "Redeem at the H-D café counter.",
+    internal_notes: "",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "p-discount",
+    name: "10% Off Parts",
+    description: "Same-day parts discount.",
+    image_url: null,
+    rarity: "uncommon" as const,
+    quantity_total: 120,
+    quantity_remaining: 120,
+    active: true,
+    redemption_instructions: "Present code to parts associate.",
+    internal_notes: "",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "p-hoodie",
+    name: "Limited Hoodie",
+    description: "Premium heavyweight fleece.",
+    image_url: null,
+    rarity: "rare" as const,
+    quantity_total: 25,
+    quantity_remaining: 25,
+    active: true,
+    redemption_instructions: "Pick up at guest services.",
+    internal_notes: "Audit inventory nightly.",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "p-oil",
+    name: "Complimentary Oil Change",
+    description: "Service department credit.",
+    image_url: null,
+    rarity: "rare" as const,
+    quantity_total: 10,
+    quantity_remaining: 10,
+    active: true,
+    redemption_instructions: "Schedule with service within 30 days.",
+    internal_notes: "",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "p-card",
+    name: "$50 Gift Card",
+    description: "Use on parts, merch, or service.",
+    image_url: null,
+    rarity: "epic" as const,
+    quantity_total: 8,
+    quantity_remaining: 8,
+    active: true,
+    redemption_instructions: "Requires manager verification.",
+    internal_notes: "",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "p-gear",
+    name: "Riding Gear Package",
+    description: "Jacket + gloves bundle.",
+    image_url: null,
+    rarity: "legendary" as const,
+    quantity_total: 3,
+    quantity_remaining: 3,
+    active: true,
+    redemption_instructions: "Fitting required — see MOD.",
+    internal_notes: "",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "p-demo",
+    name: "Overnight Demo Ride",
+    description: "Ultimate Milwaukee iron experience.",
+    image_url: null,
+    rarity: "jackpot" as const,
+    quantity_total: 1,
+    quantity_remaining: 1,
+    active: true,
+    redemption_instructions: "Jackpot verification + ID + insurance on file.",
+    internal_notes: "EVENT ONLY",
+    created_at: now,
+    updated_at: now,
+  },
+] as const;
+
+const demoAssignments: Omit<AssignmentWithPrize, "prize">[] = [
+  {
+    id: "a-wheel-1",
+    prize_id: "p-sticker",
+    game: "wheel",
+    probability_weight: 42,
+    visual_weight: 24,
+    enabled: true,
+    wheel_color: "#3f3f46",
+    wheel_glow_jackpot: false,
+    plinko_slot_index: null,
+    slot_symbol_key: null,
+    slot_payline_tier: 0,
+    display_sort: 10,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "a-wheel-2",
+    prize_id: "p-soda",
+    game: "wheel",
+    probability_weight: 30,
+    visual_weight: 18,
+    enabled: true,
+    wheel_color: "#14532d",
+    wheel_glow_jackpot: false,
+    plinko_slot_index: null,
+    slot_symbol_key: null,
+    slot_payline_tier: 0,
+    display_sort: 20,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "a-wheel-3",
+    prize_id: "p-discount",
+    game: "wheel",
+    probability_weight: 16,
+    visual_weight: 14,
+    enabled: true,
+    wheel_color: "#1e3a8a",
+    wheel_glow_jackpot: false,
+    plinko_slot_index: null,
+    slot_symbol_key: null,
+    slot_payline_tier: 0,
+    display_sort: 30,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "a-wheel-4",
+    prize_id: "p-hoodie",
+    game: "wheel",
+    probability_weight: 6,
+    visual_weight: 12,
+    enabled: true,
+    wheel_color: "#6d28d9",
+    wheel_glow_jackpot: false,
+    plinko_slot_index: null,
+    slot_symbol_key: null,
+    slot_payline_tier: 0,
+    display_sort: 40,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "a-wheel-5",
+    prize_id: "p-card",
+    game: "wheel",
+    probability_weight: 3.5,
+    visual_weight: 10,
+    enabled: true,
+    wheel_color: "#c2410c",
+    wheel_glow_jackpot: false,
+    plinko_slot_index: null,
+    slot_symbol_key: null,
+    slot_payline_tier: 0,
+    display_sort: 50,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "a-wheel-6",
+    prize_id: "p-demo",
+    game: "wheel",
+    probability_weight: 0.15,
+    visual_weight: 6,
+    enabled: true,
+    wheel_color: "#ea580c",
+    wheel_glow_jackpot: true,
+    plinko_slot_index: null,
+    slot_symbol_key: null,
+    slot_payline_tier: 0,
+    display_sort: 60,
+    created_at: now,
+    updated_at: now,
+  },
+  ...[0, 1, 2, 3, 4, 5].map((i) => {
+    const map = [
+      ["p-sticker", 22] as const,
+      ["p-soda", 18] as const,
+      ["p-discount", 14] as const,
+      ["p-hoodie", 8] as const,
+      ["p-oil", 4] as const,
+      ["p-demo", 0.12] as const,
+    ];
+    const [pid, w] = map[i] ?? map[0];
+    return {
+      id: `a-plinko-${i}`,
+      prize_id: pid,
+      game: "plinko" as const,
+      probability_weight: w,
+      visual_weight: 1,
+      enabled: true,
+      wheel_color: null,
+      wheel_glow_jackpot: pid === "p-demo",
+      plinko_slot_index: i,
+      slot_symbol_key: null,
+      slot_payline_tier: 0,
+      display_sort: i,
+      created_at: now,
+      updated_at: now,
+    };
+  }),
+  ...demoPrizes.map((p, idx) => ({
+    id: `a-slot-${p.id}`,
+    prize_id: p.id,
+    game: "slots" as const,
+    probability_weight:
+      p.rarity === "common"
+        ? 35
+        : p.rarity === "uncommon"
+          ? 20
+          : p.rarity === "rare"
+            ? 12
+            : p.rarity === "epic"
+              ? 6
+              : p.rarity === "legendary"
+                ? 2.5
+                : 0.2,
+    visual_weight: 1,
+    enabled: true,
+    wheel_color: null,
+    wheel_glow_jackpot: p.rarity === "jackpot",
+    plinko_slot_index: null,
+    slot_symbol_key: null,
+    slot_payline_tier: idx,
+    display_sort: idx,
+    created_at: now,
+    updated_at: now,
+  })),
+];
+
+export function getMockAssignments(game: GameType): AssignmentWithPrize[] {
+  const prizeById = Object.fromEntries(demoPrizes.map((p) => [p.id, p]));
+  return demoAssignments
+    .filter((a) => a.game === game)
+    .map((a) => ({
+      ...a,
+      prize: prizeById[a.prize_id]!,
+    })) as AssignmentWithPrize[];
+}
+
+export function getMockAllAssignments(): AssignmentWithPrize[] {
+  const prizeById = Object.fromEntries(demoPrizes.map((p) => [p.id, p]));
+  return demoAssignments.map((a) => ({
+    ...a,
+    prize: prizeById[a.prize_id]!,
+  })) as AssignmentWithPrize[];
+}
+
+export { demoPrizes };
