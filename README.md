@@ -1,40 +1,31 @@
 # MKE H-D Prize Hub
 
-Production-oriented Next.js app for Milwaukee Harley-Davidson–style event prize activations: three floor games (wheel, plinko, slots), Supabase-backed inventory and auth, weighted outcomes resolved on the server (odds never shipped to the client), and an admin console for prizes, distribution preview, analytics, and redemptions.
+Production-oriented Next.js app for Milwaukee Harley-Davidson–style event prize activations: three floor games (wheel, plinko, slots), **Postgres** (Vercel Postgres / Neon) + **Drizzle ORM**, **Clerk** authentication, weighted outcomes resolved on the server, and an admin console for prizes, distribution preview, analytics, and redemptions.
 
 ## Stack
 
 - **Next.js 16** (App Router, TypeScript)
 - **Tailwind CSS 4** + **shadcn/ui**
-- **Framer Motion** (game motion)
-- **Supabase** (Postgres, Auth, optional Storage)
-- **Zustand** (kiosk + session preferences)
+- **Framer Motion**
+- **Neon / Vercel Postgres** + **Drizzle ORM**
+- **Clerk** (sign-in, sessions)
+- **Zustand** (kiosk + session hints)
 - **Zod** (API validation)
 
 ## Repository layout
 
 ```
 src/
-  app/                      # Routes: /, /game/*, /admin/*, /api/*
+  app/                      # Routes: /, /game/*, /sign-in, /admin/*, /api/*
+  actions/                  # Server actions (admin prize / redemption CRUD)
+  db/                       # Drizzle schema + DB client
   components/
-    admin/                  # Prize lab, stats reset
-    brand/                  # Logo / sponsor rail hooks
-    games/                  # Wheel, plinko, slots, HUD, win overlay
-    home/                   # Lobby + attract mode
-    ui/                     # shadcn components
-  hooks/                    # Fullscreen, procedural audio
-  lib/
-    games/                  # Config + play orchestration
-    supabase/               # Browser, server, service-role clients
-    prize-engine.ts         # Weighting, wheel geometry, slot hints
-    rarity.ts               # Tier labels + UI tokens
-    mock-data.ts            # Local demo catalog
-    stats-window.ts         # Analytics “since reset” window
-  stores/                   # Kiosk + game session (recent wins)
-  types/database.ts         # Shared TS models
-supabase/
-  migrations/00001_initial_schema.sql
-.env.local.example
+  lib/auth/                 # Clerk profile sync + admin guard
+  lib/games/                # Play orchestration + data fetch
+  lib/db/mappers.ts         # DB row → app types
+drizzle/
+  0000_init_neon.sql        # Run once against your database (see below)
+drizzle.config.ts           # drizzle-kit (optional)
 ```
 
 ## Local setup
@@ -45,68 +36,62 @@ supabase/
    npm install
    ```
 
-2. **Environment**
+2. **Clerk**
 
-   Copy `.env.local.example` to `.env.local` and fill in Supabase keys, or enable demo mode:
+   Create an application at [Clerk](https://dashboard.clerk.com). Add to `.env.local`:
 
-   - `NEXT_PUBLIC_LOCAL_ONLY_MODE=true` — uses in-memory prize catalog; play API does not persist plays (still returns real JSON for games).
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+   - `CLERK_SECRET_KEY`
 
 3. **Database**
 
-   In the Supabase SQL editor (or CLI), run:
+   Create a **Vercel Postgres** or **Neon** database. Copy the **pooled** connection string into:
 
-   `supabase/migrations/00001_initial_schema.sql`
+   - `DATABASE_URL`
 
-4. **First admin user**
+   Apply the schema (supports multiple statements — use `psql`, not a single-statement SQL editor):
 
-   - Create a user under **Authentication → Users**.
-   - Promote to admin:
+   ```bash
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f drizzle/0000_init_neon.sql
+   ```
 
-     ```sql
-     update public.profiles
-     set role = 'admin'
-     where email = 'you@dealership.com';
-     ```
+   The previous `supabase/migrations/` file is **legacy** (Supabase Auth + RLS); this app no longer uses it.
 
-5. **Dev server**
+4. **First admin**
+
+   Sign in once via `/sign-in`, then in SQL:
+
+   ```sql
+   update public.profiles
+   set role = 'admin'
+   where id = 'user_XXXXX';  -- your Clerk user id from Clerk dashboard or DB
+   ```
+
+5. **Dev / build**
 
    ```bash
    npm run dev
    ```
 
-   - Floor: [http://localhost:3000](http://localhost:3000)
-   - Admin: [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
-
-6. **Production build**
-
    ```bash
    npm run build && npm start
    ```
 
+6. **Optional demo mode**
+
+   - `NEXT_PUBLIC_LOCAL_ONLY_MODE=true` — in-memory prize catalog; plays are not written to Postgres.
+
 ## Vercel deployment
 
-1. Create a Supabase project; run the migration SQL.
-2. Create a Vercel project pointing at this repo.
-3. Set environment variables in Vercel (see `.env.local.example`):
-
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` (server-only; required for `/api/games/*/play` writes)
-
-4. Deploy; optional `STATS_RESET_AT` ISO string seeds analytics window before first UI reset.
+1. Link the GitHub repo; add **Clerk** env vars and `DATABASE_URL` from Vercel Storage / Neon.
+2. Run `drizzle/0000_init_neon.sql` against that database (SQL Editor with **psql** or Neon’s “run script” if supported).
+3. Promote your user to `admin` in `profiles` as above.
 
 ## Product notes
 
-- **Fairness**: Outcomes are chosen in `src/lib/games/play.ts` via the service role. Public config endpoints only return display data (segment sizes, slot labels, symbol art).
-- **Inventory**: Winning a prize decrements `quantity_remaining` and disables assignments when stock hits zero.
-- **Kiosk**: HUD supports fullscreen, sound (Web Audio bleeps), staff reset of session anti-repeat hints, and attract overlay on the lobby.
-- **Hotkey**: Lobby `Ctrl+Shift+A` surfaces a quick link to the admin sign-in.
-
-## Optional next steps
-
-- **Storage**: Add a `prize-images` public bucket and paste public URLs into `image_url`.
-- **Offline / PWA**: Add a service worker and cache config payloads for field fail-safe.
-- **Theme packs**: `useKioskStore` already persists theme id; wire CSS variables per event preset.
+- Outcomes are chosen server-side; public config endpoints do not expose probability weights.
+- Admin APIs and server actions require a signed-in user with `profiles.role = 'admin'`.
+- Floor routes (`/`, `/game/*`, `/api/games/*`) stay public for kiosk use.
 
 ## Branding
 

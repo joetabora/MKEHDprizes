@@ -44,7 +44,7 @@ export function HomeExperience() {
           action: {
             label: "Go",
             onClick: () => {
-              window.location.href = "/admin/login";
+              window.location.href = "/sign-in?redirect_url=" + encodeURIComponent("/admin");
             },
           },
         });
@@ -64,7 +64,7 @@ export function HomeExperience() {
           <MkeLogo />
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/admin/login"
+              href="/sign-in?redirect_url=/admin"
               className="inline-flex h-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 text-base font-medium text-white hover:bg-white/10"
             >
               Staff console

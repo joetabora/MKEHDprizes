@@ -1,21 +1,35 @@
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { count, eq, gte } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getEffectiveStatsSince } from "@/lib/stats-window";
 import type { GameType } from "@/types/database";
+import { tryGetDb } from "@/db/index";
+import { plays, redemptions } from "@/db/schema";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminHomePage() {
-  const supa = await createServerSupabaseClient();
-  const since = await getEffectiveStatsSince(supa);
+  const since = await getEffectiveStatsSince();
+  const sinceDate = new Date(since);
+  const db = tryGetDb();
 
-  const [{ count: playCount }, { data: plays }, { count: pendingRedemptions }] = await Promise.all([
-    supa.from("plays").select("*", { count: "exact", head: true }).gte("created_at", since),
-    supa.from("plays").select("game").gte("created_at", since),
-    supa.from("redemptions").select("*", { count: "exact", head: true }).eq("status", "pending"),
-  ]);
+  let playCount = 0;
+  let playRows: { game: string }[] = [];
+  let pendingRedemptions = 0;
+
+  if (db) {
+    const [pc] = await db.select({ c: count() }).from(plays).where(gte(plays.created_at, sinceDate));
+    playCount = Number(pc?.c ?? 0);
+    playRows = await db.select({ game: plays.game }).from(plays).where(gte(plays.created_at, sinceDate));
+    const [rc] = await db
+      .select({ c: count() })
+      .from(redemptions)
+      .where(eq(redemptions.status, "pending"));
+    pendingRedemptions = Number(rc?.c ?? 0);
+  }
 
   const freq: Record<string, number> = {};
-  for (const row of plays ?? []) {
+  for (const row of playRows) {
     const g = row.game as string;
     freq[g] = (freq[g] ?? 0) + 1;
   }
@@ -44,7 +58,7 @@ export default async function AdminHomePage() {
           <CardHeader>
             <CardTitle className="text-sm font-medium text-zinc-400">Total plays (since reset)</CardTitle>
           </CardHeader>
-          <CardContent className="text-4xl font-bold text-white">{playCount ?? 0}</CardContent>
+          <CardContent className="text-4xl font-bold text-white">{playCount}</CardContent>
         </Card>
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
@@ -56,7 +70,7 @@ export default async function AdminHomePage() {
           <CardHeader>
             <CardTitle className="text-sm font-medium text-zinc-400">Pending redemptions</CardTitle>
           </CardHeader>
-          <CardContent className="text-4xl font-bold text-white">{pendingRedemptions ?? 0}</CardContent>
+          <CardContent className="text-4xl font-bold text-white">{pendingRedemptions}</CardContent>
         </Card>
       </div>
 

@@ -1,8 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import type { AssignmentWithPrize, GameType, PrizeRow, RarityTier } from "@/types/database";
+import {
+  loadPrizeLabDataAction,
+  upsertPrizeAction,
+  insertAssignmentAction,
+  setAssignmentEnabledAction,
+} from "@/actions/prize-admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,17 +63,15 @@ export function PrizeLab() {
   });
 
   const reload = useCallback(async () => {
-    const supa = createClient();
-    const [{ data: p, error: e1 }, { data: a, error: e2 }] = await Promise.all([
-      supa.from("prizes").select("*").order("created_at", { ascending: false }),
-      supa.from("prize_assignments").select("*, prize:prizes(*)"),
-    ]);
-    if (e1) toast.error(e1.message);
-    if (e2) toast.error(e2.message);
-    setPrizes((p ?? []) as PrizeRow[]);
-    const rows = (a ?? []) as unknown as AssignmentWithPrize[];
-    setAssignments(rows.map((r) => ({ ...r, prize: (Array.isArray(r.prize) ? r.prize[0] : r.prize) as PrizeRow })));
-    setLoading(false);
+    try {
+      const data = await loadPrizeLabDataAction();
+      setPrizes(data.prizes);
+      setAssignments(data.assignments);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load prizes");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -336,29 +339,25 @@ export function PrizeLab() {
               className="rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 font-semibold text-black"
               type="button"
               onClick={async () => {
-                const supa = createClient();
-                const payload = {
-                  name: form.name,
-                  description: form.description,
-                  image_url: form.image_url || null,
-                  rarity: form.rarity,
-                  quantity_total: form.quantity_total,
-                  quantity_remaining: form.quantity_remaining,
-                  active: form.active,
-                  redemption_instructions: form.redemption_instructions,
-                  internal_notes: form.internal_notes,
-                };
-                if (editing) {
-                  const { error } = await supa.from("prizes").update(payload).eq("id", editing.id);
-                  if (error) toast.error(error.message);
-                  else toast.success("Prize updated");
-                } else {
-                  const { error } = await supa.from("prizes").insert(payload);
-                  if (error) toast.error(error.message);
-                  else toast.success("Prize created");
+                try {
+                  await upsertPrizeAction({
+                    editingId: editing?.id ?? null,
+                    name: form.name,
+                    description: form.description,
+                    image_url: form.image_url || null,
+                    rarity: form.rarity,
+                    quantity_total: form.quantity_total,
+                    quantity_remaining: form.quantity_remaining,
+                    active: form.active,
+                    redemption_instructions: form.redemption_instructions,
+                    internal_notes: form.internal_notes,
+                  });
+                  toast.success(editing ? "Prize updated" : "Prize created");
+                  setOpen(false);
+                  await reload();
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Save failed");
                 }
-                setOpen(false);
-                await reload();
               }}
             >
               Save
@@ -474,24 +473,21 @@ function AssignmentQuickAdd({
             toast.error("Pick a prize.");
             return;
           }
-          const supa = createClient();
-          const { error } = await supa.from("prize_assignments").insert({
-            prize_id: prizeId,
-            game,
-            probability_weight: probability,
-            visual_weight: visual,
-            enabled: true,
-            wheel_color: wheelColor,
-            wheel_glow_jackpot: glow,
-            plinko_slot_index: game === "plinko" ? slotIdx : null,
-            slot_symbol_key: null,
-            slot_payline_tier: 0,
-            display_sort: assignments.filter((a) => a.game === game).length * 10,
-          });
-          if (error) toast.error(error.message);
-          else {
+          try {
+            await insertAssignmentAction({
+              prizeId,
+              game,
+              probability,
+              visual,
+              wheelColor,
+              glow,
+              slotIdx,
+              displaySort: assignments.filter((a) => a.game === game).length * 10,
+            });
             toast.success("Assignment created");
             onSaved();
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to add assignment");
           }
         }}
       >
@@ -518,13 +514,12 @@ function AssignmentQuickAdd({
                   <Switch
                     checked={a.enabled}
                     onCheckedChange={async (v) => {
-                      const supa = createClient();
-                      const { error } = await supa
-                        .from("prize_assignments")
-                        .update({ enabled: v })
-                        .eq("id", a.id);
-                      if (error) toast.error(error.message);
-                      onSaved();
+                      try {
+                        await setAssignmentEnabledAction(a.id, v);
+                        onSaved();
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Update failed");
+                      }
                     }}
                   />
                 </TableCell>

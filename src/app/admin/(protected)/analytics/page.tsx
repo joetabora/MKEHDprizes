@@ -1,29 +1,37 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { gte } from "drizzle-orm";
 import { getEffectiveStatsSince } from "@/lib/stats-window";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsResetButton } from "@/components/admin/stats-reset-button";
+import { tryGetDb } from "@/db/index";
+import { plays } from "@/db/schema";
+
+export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {
-  const supa = await createServerSupabaseClient();
-  const since = await getEffectiveStatsSince(supa);
-  const { data: plays } = await supa
-    .from("plays")
-    .select("created_at, game, prize_id")
-    .gte("created_at", since);
+  const since = await getEffectiveStatsSince();
+  const sinceDate = new Date(since);
+  const db = tryGetDb();
+
+  const playList = db
+    ? await db
+        .select({ created_at: plays.created_at, game: plays.game, prize_id: plays.prize_id })
+        .from(plays)
+        .where(gte(plays.created_at, sinceDate))
+    : [];
 
   const hours = Array.from({ length: 24 }, (_, h) => h);
   const heat = hours.map((h) => {
-    const count =
-      plays?.filter((p) => {
-        const d = new Date(p.created_at as string);
-        return d.getHours() === h;
-      }).length ?? 0;
+    const count = playList.filter((p) => {
+      const raw = p.created_at;
+      const d = raw instanceof Date ? raw : new Date(raw as string);
+      return d.getHours() === h;
+    }).length;
     return { h, count };
   });
   const max = Math.max(1, ...heat.map((x) => x.count));
 
   const byGame: Record<string, number> = {};
-  for (const p of plays ?? []) {
+  for (const p of playList) {
     byGame[p.game as string] = (byGame[p.game as string] ?? 0) + 1;
   }
 
@@ -47,12 +55,15 @@ export default async function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {heat.map(({ h, count }) => (
-              <div key={h} className="flex w-[calc(4.16%-6px)] min-w-[36px] flex-1 flex-col items-center gap-2">
+            {heat.map(({ h, count: hourCount }) => (
+              <div
+                key={h}
+                className="flex min-w-[36px] flex-1 basis-[4.16%] flex-col items-center gap-2"
+              >
                 <div
                   className="h-16 w-full rounded-lg bg-gradient-to-t from-orange-600/20 to-orange-400/90"
-                  style={{ opacity: 0.25 + (0.75 * count) / max }}
-                  title={`${h}:00 — ${count} plays`}
+                  style={{ opacity: 0.25 + (0.75 * hourCount) / max }}
+                  title={`${h}:00 — ${hourCount} plays`}
                 />
                 <span className="text-[10px] text-zinc-500">{h}</span>
               </div>
@@ -73,7 +84,7 @@ export default async function AnalyticsPage() {
               <div className="mt-3 h-2 rounded-full bg-black/50">
                 <div
                   className="h-full rounded-full bg-orange-500"
-                  style={{ width: `${Math.min(100, (c / (plays?.length || 1)) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (c / (playList.length || 1)) * 100)}%` }}
                 />
               </div>
             </div>

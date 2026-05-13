@@ -1,29 +1,26 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdminDb } from "@/lib/auth/require-admin";
+import { appSettings } from "@/db/schema";
 
 export async function POST() {
-  const supa = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supa.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const { db } = await requireAdminDb();
+    const at = new Date().toISOString();
+    await db
+      .insert(appSettings)
+      .values({
+        key: "stats_reset_at",
+        value: { at },
+        updated_at: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: { at }, updated_at: new Date() },
+      });
+    return NextResponse.json({ ok: true, since: at });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Reset failed";
+    const status = msg === "Unauthorized" ? 401 : msg === "Forbidden" ? 403 : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
-  const { data: profile } = await supa
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const at = new Date().toISOString();
-  const { error } = await supa.from("app_settings").upsert(
-    { key: "stats_reset_at", value: { at }, updated_at: at },
-    { onConflict: "key" },
-  );
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  return NextResponse.json({ ok: true, since: at });
 }

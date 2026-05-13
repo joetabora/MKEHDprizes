@@ -1,20 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { listRedemptionsAdminAction, markRedemptionRedeemedAction } from "@/actions/prize-admin";
 
 type Row = {
   id: string;
   code: string;
   status: string;
   claim_later: boolean;
-  created_at: string;
-  prize: { name: string } | null;
+  created_at: Date;
+  prizeName: string | null;
 };
 
 export default function RedemptionsPage() {
@@ -22,21 +22,12 @@ export default function RedemptionsPage() {
   const [q, setQ] = useState("");
 
   const reload = useCallback(async () => {
-    const supa = createClient();
-    const { data, error } = await supa
-      .from("redemptions")
-      .select("id, code, status, claim_later, created_at, prize:prizes(name)")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const data = await listRedemptionsAdminAction();
+      setRows(data);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load");
     }
-    const list = (data ?? []).map((r) => ({
-      ...r,
-      prize: Array.isArray(r.prize) ? r.prize[0] : r.prize,
-    })) as Row[];
-    setRows(list);
   }, []);
 
   useEffect(() => {
@@ -77,7 +68,7 @@ export default function RedemptionsPage() {
             {filtered.map((r) => (
               <tr key={r.id} className="border-b border-white/5 hover:bg-white/5">
                 <td className="px-4 py-3 font-mono text-orange-200">{r.code}</td>
-                <td className="px-4 py-3">{r.prize?.name ?? "—"}</td>
+                <td className="px-4 py-3">{r.prizeName ?? "—"}</td>
                 <td className="px-4 py-3">
                   <Badge
                     variant="outline"
@@ -100,22 +91,12 @@ export default function RedemptionsPage() {
                       className="rounded-xl bg-emerald-600 hover:bg-emerald-500"
                       type="button"
                       onClick={async () => {
-                        const supa = createClient();
-                        const {
-                          data: { user },
-                        } = await supa.auth.getUser();
-                        const { error } = await supa
-                          .from("redemptions")
-                          .update({
-                            status: "redeemed",
-                            redeemed_at: new Date().toISOString(),
-                            redeemed_by: user?.id ?? null,
-                          })
-                          .eq("id", r.id);
-                        if (error) toast.error(error.message);
-                        else {
+                        try {
+                          await markRedemptionRedeemedAction(r.id);
                           toast.success("Marked redeemed");
                           await reload();
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Failed");
                         }
                       }}
                     >

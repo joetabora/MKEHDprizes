@@ -1,15 +1,24 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { eq } from "drizzle-orm";
+import { appSettings } from "@/db/schema";
+import { tryGetDb } from "@/db/index";
 import { getStatsResetAt } from "@/lib/env";
 
-export async function getEffectiveStatsSince(supa: SupabaseClient): Promise<string> {
+export async function getEffectiveStatsSince(): Promise<string> {
   const env = getStatsResetAt()?.toISOString();
-  const { data } = await supa
-    .from("app_settings")
-    .select("value")
-    .eq("key", "stats_reset_at")
-    .maybeSingle();
-  const at = (data?.value as { at?: string } | null)?.at;
-  if (at) return at;
-  if (env) return env;
+  const db = tryGetDb();
+  if (db) {
+    const rows = await db
+      .select()
+      .from(appSettings)
+      .where(eq(appSettings.key, "stats_reset_at"))
+      .limit(1);
+    const at = (rows[0]?.value as { at?: string } | undefined)?.at;
+    if (at) {
+      return at;
+    }
+  }
+  if (env) {
+    return env;
+  }
   return new Date(0).toISOString();
 }

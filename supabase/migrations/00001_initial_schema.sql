@@ -1,3 +1,6 @@
+-- LEGACY: Supabase-only (auth.users, RLS, auth.uid()). Not used by the current app.
+-- Use drizzle/0000_init_neon.sql for Vercel Postgres / Neon instead.
+
 -- MKE H-D Prize Hub — initial schema
 -- Run in Supabase SQL editor or via CLI migrations
 

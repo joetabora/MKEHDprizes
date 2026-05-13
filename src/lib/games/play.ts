@@ -14,7 +14,9 @@ import {
 } from "@/lib/prize-engine";
 import { fetchAssignments } from "@/lib/games/data";
 import { generateRedemptionCode } from "@/lib/redemption-code";
-import { createServiceRoleClient } from "@/lib/supabase/service";
+import { getDb, tryGetDb } from "@/db/index";
+import { plays, redemptions, prizes, prizeAssignments } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { isLocalOnlyMode } from "@/lib/env";
 import { randomUUID } from "crypto";
 
@@ -38,59 +40,57 @@ async function persistPlay(opts: {
   if (isLocalOnlyMode()) {
     return { playId: randomUUID(), redemptionCode: generateRedemptionCode() };
   }
-  const supa = createServiceRoleClient();
+  if (!tryGetDb()) {
+    return { playId: randomUUID(), redemptionCode: generateRedemptionCode() };
+  }
+  const db = getDb();
   const code = generateRedemptionCode();
 
-  const { data: play, error: playErr } = await supa
-    .from("plays")
-    .insert({
-      game: opts.game,
+  const playId = await db.transaction(async (tx) => {
+    const [play] = await tx
+      .insert(plays)
+      .values({
+        game: opts.game,
+        prize_id: opts.assignment.prize_id,
+        assignment_id: opts.assignment.id,
+        session_id: opts.sessionId,
+        server_meta: opts.serverMeta,
+      })
+      .returning({ id: plays.id });
+
+    if (!play) {
+      throw new Error("Failed to record play");
+    }
+
+    await tx.insert(redemptions).values({
+      play_id: play.id,
       prize_id: opts.assignment.prize_id,
-      assignment_id: opts.assignment.id,
-      session_id: opts.sessionId,
-      server_meta: opts.serverMeta,
-    })
-    .select("id")
-    .single();
+      code,
+      status: "pending",
+      claim_later: false,
+    });
 
-  if (playErr || !play) {
-    throw new Error(playErr?.message || "Failed to record play");
-  }
+    const newQty = Math.max(0, opts.assignment.prize.quantity_remaining - 1);
+    await tx
+      .update(prizes)
+      .set({
+        quantity_remaining: newQty,
+        active: newQty > 0 ? opts.assignment.prize.active : false,
+        updated_at: new Date(),
+      })
+      .where(eq(prizes.id, opts.assignment.prize_id));
 
-  const { error: redErr } = await supa.from("redemptions").insert({
-    play_id: play.id,
-    prize_id: opts.assignment.prize_id,
-    code,
-    status: "pending",
-    claim_later: false,
+    if (newQty === 0) {
+      await tx
+        .update(prizeAssignments)
+        .set({ enabled: false, updated_at: new Date() })
+        .where(eq(prizeAssignments.prize_id, opts.assignment.prize_id));
+    }
+
+    return play.id;
   });
 
-  if (redErr) {
-    throw new Error(redErr.message);
-  }
-
-  const newQty = Math.max(0, opts.assignment.prize.quantity_remaining - 1);
-  const { error: invErr } = await supa
-    .from("prizes")
-    .update({
-      quantity_remaining: newQty,
-      active: newQty > 0 ? opts.assignment.prize.active : false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", opts.assignment.prize_id);
-
-  if (invErr) {
-    throw new Error(invErr.message);
-  }
-
-  if (newQty === 0) {
-    await supa
-      .from("prize_assignments")
-      .update({ enabled: false, updated_at: new Date().toISOString() })
-      .eq("prize_id", opts.assignment.prize_id);
-  }
-
-  return { playId: play.id as string, redemptionCode: code };
+  return { playId, redemptionCode: code };
 }
 
 export async function playWheel(opts: {
