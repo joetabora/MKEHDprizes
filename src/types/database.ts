@@ -19,6 +19,8 @@ export interface PrizeRow {
   active: boolean;
   redemption_instructions: string | null;
   internal_notes: string | null;
+  /** Preset emoji key for wheel slices (admin dropdown). */
+  wheel_icon_key: string;
   created_at: string;
   updated_at: string;
 }
@@ -61,6 +63,8 @@ export interface WheelSegmentPublic {
   assignmentId: string;
   prizeId: string;
   label: string;
+  /** Emoji shown on the wheel slice (no prize name on wheel). */
+  iconEmoji: string;
   color: string;
   isJackpot: boolean;
   /** 0–1 fraction of full circle for arc drawing */

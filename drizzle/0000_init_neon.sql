@@ -39,6 +39,7 @@ CREATE TABLE prizes (
   active boolean NOT NULL DEFAULT true,
   redemption_instructions text DEFAULT '',
   internal_notes text DEFAULT '',
+  wheel_icon_key text NOT NULL DEFAULT 'star',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

@@ -39,6 +39,12 @@ import {
 import { toast } from "sonner";
 import { RARITY_OPTIONS, rarityLabel } from "@/lib/rarity";
 import { previewDistribution } from "@/lib/prize-engine";
+import {
+  DEFAULT_WHEEL_ICON_KEY,
+  WHEEL_ICONS,
+  type WheelIconKey,
+  wheelIconEmoji,
+} from "@/lib/wheel-icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 const games: GameType[] = ["wheel", "plinko", "slots"];
@@ -61,6 +67,7 @@ export function PrizeLab() {
     active: true,
     redemption_instructions: "",
     internal_notes: "",
+    wheel_icon_key: DEFAULT_WHEEL_ICON_KEY,
   });
 
   const reload = useCallback(async () => {
@@ -110,6 +117,7 @@ export function PrizeLab() {
               active: true,
               redemption_instructions: "",
               internal_notes: "",
+              wheel_icon_key: DEFAULT_WHEEL_ICON_KEY,
             });
             setOpen(true);
           }}
@@ -129,6 +137,7 @@ export function PrizeLab() {
               <TableHeader>
                 <TableRow className="border-white/10 hover:bg-transparent">
                   <TableHead>Name</TableHead>
+                  <TableHead className="w-14 text-center">Wheel</TableHead>
                   <TableHead>Rarity</TableHead>
                   <TableHead>Remaining</TableHead>
                   <TableHead>Active</TableHead>
@@ -138,14 +147,14 @@ export function PrizeLab() {
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-zinc-500">
+                    <TableCell colSpan={6} className="text-zinc-500">
                       Loading…
                     </TableCell>
                   </TableRow>
                 )}
                 {!loading && prizes.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-zinc-500">
+                    <TableCell colSpan={6} className="text-zinc-500">
                       No prizes yet — seed demo data or create your first SKU.
                     </TableCell>
                   </TableRow>
@@ -153,6 +162,9 @@ export function PrizeLab() {
                 {prizes.map((p) => (
                   <TableRow key={p.id} className="border-white/10">
                     <TableCell className="font-medium">{p.name}</TableCell>
+                    <TableCell className="text-center text-lg" title={p.wheel_icon_key}>
+                      {wheelIconEmoji(p.wheel_icon_key)}
+                    </TableCell>
                     <TableCell className="capitalize">{p.rarity}</TableCell>
                     <TableCell>
                       {p.quantity_remaining}/{p.quantity_total}
@@ -192,6 +204,7 @@ export function PrizeLab() {
                               active: p.active,
                               redemption_instructions: p.redemption_instructions ?? "",
                               internal_notes: p.internal_notes ?? "",
+                              wheel_icon_key: (p.wheel_icon_key ?? DEFAULT_WHEEL_ICON_KEY) as WheelIconKey,
                             });
                             setOpen(true);
                           }}
@@ -308,6 +321,27 @@ export function PrizeLab() {
                 </div>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Wheel slice icon</Label>
+              <Select
+                value={form.wheel_icon_key}
+                onValueChange={(v) => v && setForm({ ...form, wheel_icon_key: v as WheelIconKey })}
+              >
+                <SelectTrigger className="rounded-xl border-white/10 bg-black/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WHEEL_ICONS.map((o) => (
+                    <SelectItem key={o.key} value={o.key}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="text-lg">{o.emoji}</span>
+                        <span>{o.label}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Quantity total</Label>
@@ -370,6 +404,7 @@ export function PrizeLab() {
                     active: form.active,
                     redemption_instructions: form.redemption_instructions,
                     internal_notes: form.internal_notes,
+                    wheel_icon_key: form.wheel_icon_key,
                   });
                   toast.success(editing ? "Prize updated" : "Prize created");
                   setOpen(false);

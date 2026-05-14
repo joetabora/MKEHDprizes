@@ -184,26 +184,21 @@ export function PrizeWheelGame() {
                           const tx = Math.cos(mid) * labelR;
                           const ty = Math.sin(mid) * labelR;
                           const midDeg = (mid * 180) / Math.PI;
-                          // Diagonal run through the slice (not radial): tilt baseline vs horizontal.
-                          let rotDeg = midDeg + 24;
+                          let rotDeg = midDeg + 8;
                           rotDeg = ((rotDeg % 360) + 360) % 360;
                           if (rotDeg > 90 && rotDeg < 270) rotDeg += 180;
-                          const display =
-                            seg.label.length > 18 ? `${seg.label.slice(0, 17)}…` : seg.label;
                           return (
                             <text
                               transform={`rotate(${rotDeg}, ${tx}, ${ty})`}
                               x={tx}
                               y={ty}
                               fill="white"
-                              fontSize={10}
+                              fontSize={22}
                               textAnchor="middle"
                               dominantBaseline="middle"
-                              className="font-[family-name:var(--font-display)] uppercase"
-                              letterSpacing="0.06em"
-                              style={{ textShadow: "0 2px 8px rgba(0,0,0,0.85)" }}
+                              style={{ textShadow: "0 2px 10px rgba(0,0,0,0.9)" }}
                             >
-                              {display}
+                              {seg.iconEmoji}
                             </text>
                           );
                         })()}

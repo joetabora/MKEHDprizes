@@ -50,6 +50,7 @@ export const prizes = pgTable("prizes", {
   active: boolean("active").notNull().default(true),
   redemption_instructions: text("redemption_instructions").default(""),
   internal_notes: text("internal_notes").default(""),
+  wheel_icon_key: text("wheel_icon_key").notNull().default("star"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

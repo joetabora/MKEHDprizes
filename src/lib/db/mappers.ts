@@ -23,6 +23,7 @@ export function toPrizeRow(p: PrizeSelect): PrizeRow {
     active: p.active,
     redemption_instructions: p.redemption_instructions,
     internal_notes: p.internal_notes,
+    wheel_icon_key: p.wheel_icon_key,
     created_at: toIso(p.created_at),
     updated_at: toIso(p.updated_at),
   };

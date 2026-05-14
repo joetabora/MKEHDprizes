@@ -6,6 +6,7 @@ import type {
   WheelSegmentPublic,
 } from "@/types/database";
 import { rarityIndex } from "@/lib/rarity";
+import { wheelIconEmoji } from "@/lib/wheel-icons";
 
 export interface WeightedPickContext {
   game: GameType;
@@ -118,6 +119,7 @@ export function toWheelSegments(rows: AssignmentWithPrize[]): WheelSegmentPublic
     assignmentId: r.id,
     prizeId: r.prize_id,
     label: r.prize.name,
+    iconEmoji: wheelIconEmoji(r.prize.wheel_icon_key),
     color: r.wheel_color || defaultWheelColor(i, r.prize.rarity as RarityTier),
     isJackpot: r.wheel_glow_jackpot || r.prize.rarity === "jackpot",
     angleFraction: vw[i] / total,

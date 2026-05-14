@@ -6,6 +6,7 @@ import { requireAdminDb } from "@/lib/auth/require-admin";
 import { prizeAssignments, prizes } from "@/db/schema";
 import { toAssignmentWithPrize, toPrizeRow } from "@/lib/db/mappers";
 import type { AssignmentWithPrize, GameType, PrizeRow, RarityTier } from "@/types/database";
+import { normalizeWheelIconKey } from "@/lib/wheel-icons";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -67,8 +68,10 @@ export async function upsertPrizeAction(payload: {
   active: boolean;
   redemption_instructions: string;
   internal_notes: string;
+  wheel_icon_key: string;
 }) {
   const { db } = await requireAdminDb();
+  const iconKey = normalizeWheelIconKey(payload.wheel_icon_key);
   if (payload.editingId) {
     await db
       .update(prizes)
@@ -82,6 +85,7 @@ export async function upsertPrizeAction(payload: {
         active: payload.active,
         redemption_instructions: payload.redemption_instructions,
         internal_notes: payload.internal_notes,
+        wheel_icon_key: iconKey,
         updated_at: new Date(),
       })
       .where(eq(prizes.id, payload.editingId));
@@ -96,6 +100,7 @@ export async function upsertPrizeAction(payload: {
       active: payload.active,
       redemption_instructions: payload.redemption_instructions,
       internal_notes: payload.internal_notes,
+      wheel_icon_key: iconKey,
     });
   }
   revalidatePath("/admin/prizes");
@@ -123,6 +128,7 @@ export async function duplicatePrizeAction(sourcePrizeId: string) {
       active: src.active,
       redemption_instructions: src.redemption_instructions,
       internal_notes: src.internal_notes,
+      wheel_icon_key: normalizeWheelIconKey(src.wheel_icon_key),
     })
     .returning({ id: prizes.id });
 
