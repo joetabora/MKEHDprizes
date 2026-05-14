@@ -1,5 +1,5 @@
-import { PrizeLab } from "@/components/admin/prize-lab";
+import { PrizeLabGate } from "@/components/admin/prize-lab-gate";
 
 export default function AdminPrizesPage() {
-  return <PrizeLab />;
+  return <PrizeLabGate />;
 }

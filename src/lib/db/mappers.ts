@@ -1,5 +1,6 @@
 import type { PrizeAssignmentSelect, PrizeSelect } from "@/db/schema";
 import type { AssignmentWithPrize, GameType, PrizeRow, RarityTier } from "@/types/database";
+import { normalizeWheelIconKey } from "@/lib/wheel-icons";
 
 function toIso(v: unknown): string {
   if (v instanceof Date) {
@@ -23,7 +24,7 @@ export function toPrizeRow(p: PrizeSelect): PrizeRow {
     active: p.active,
     redemption_instructions: p.redemption_instructions,
     internal_notes: p.internal_notes,
-    wheel_icon_key: p.wheel_icon_key,
+    wheel_icon_key: normalizeWheelIconKey(p.wheel_icon_key ?? undefined),
     created_at: toIso(p.created_at),
     updated_at: toIso(p.updated_at),
   };

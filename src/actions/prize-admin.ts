@@ -33,9 +33,15 @@ function isPgUniqueViolation(e: unknown): boolean {
   return false;
 }
 
+function jsonSafeForClient<T>(value: T): T {
+  return JSON.parse(
+    JSON.stringify(value, (_, v) => (typeof v === "bigint" ? v.toString() : v)),
+  ) as T;
+}
+
 /** Plain JSON-safe payload for the client (avoids Flight serialization issues). */
 function prizeLabPayload(prizes: PrizeRow[], assignments: AssignmentWithPrize[]) {
-  return JSON.parse(JSON.stringify({ prizes, assignments })) as {
+  return jsonSafeForClient({ prizes, assignments }) as {
     prizes: PrizeRow[];
     assignments: AssignmentWithPrize[];
   };
