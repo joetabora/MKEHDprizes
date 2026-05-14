@@ -183,8 +183,11 @@ export function PrizeWheelGame() {
                           const labelR = 74;
                           const tx = Math.cos(mid) * labelR;
                           const ty = Math.sin(mid) * labelR;
-                          let rotDeg = (mid * 180) / Math.PI + 90;
-                          if (ty > 0.5) rotDeg += 180;
+                          const midDeg = (mid * 180) / Math.PI;
+                          // Diagonal run through the slice (not radial): tilt baseline vs horizontal.
+                          let rotDeg = midDeg + 52;
+                          rotDeg = ((rotDeg % 360) + 360) % 360;
+                          if (rotDeg > 90 && rotDeg < 270) rotDeg += 180;
                           const display =
                             seg.label.length > 18 ? `${seg.label.slice(0, 17)}…` : seg.label;
                           return (
